@@ -16,13 +16,27 @@ class Team extends Model
     public function add($users)
     {
 
-        $this->guardAgainstTooManyMembers();
-
         if ($users instanceof User) {
-            return $this->users()->save($users);
+            $users = collect([$users]);
+        } elseif (!($users instanceof \Illuminate\Support\Collection)) {
+            $users = collect($users);
         }
 
-        $this->users()->saveMany($users);
+        foreach ($users as $user) {
+            
+            if (is_numeric($user)) {
+                $user = User::findOrFail($user);
+            }
+           
+            if ($this->users()->where('id', $user->id)->exists()) {
+                continue;
+            }
+            
+            if ($this->users()->count() >= $this->size) {
+                throw new Exception();
+            }
+            $this->users()->save($user);
+        }
     }
 
     public function users()
